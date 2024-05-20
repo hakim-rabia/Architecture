@@ -1,6 +1,4 @@
-import os, shutil, re
-import time
-import matplotlib.pyplot as plt
+from utils import get_register, get_address, int2word, twos_complement
 
 opcodes = {
     "add":  0,
@@ -38,193 +36,30 @@ funct = {
     "slt":  7,
 }
 
-registers = ["$zero", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", "$a3", "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7", "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7", "$t8", "$t9", "$k0", "$k1", "$gp", "$sp", "$fp", "$ra"]
-
-addresses = {}
-
-def save_address(line, i):
-    if line[0] == '@':
-        addresses[line] = i
-
-def get_address(line, i):
-    if line == '@here':
-        return i+2
-    if line[:6] == '@here+':
-        return i+int(line[6:])
-    elif line in addresses:
-        return addresses[line]
-    else:
-        return int(line)
-
-def is_instruction(line):
-    return line != '' and line[0] != '@'
-
-def is_address(line):
-    return len(line) > 1 and line[0] == '@'
-
-def registers_match(match):
-    label, var1, var2 = match.groups()
-    if var1 == var2:
-        return 'new_label {}, {}'.format(var1, var2)
-    else:
-        return match.group()
-
-def preprocess(lines):
-    result = []
-    for line in lines:
-        line = line.split(";")[0]
-        line = line.strip()
-        line = line.lower()
-        line = re.sub(' +', ' ', line)
-
-        # MOVE
-        line = re.sub('move', 'add $0', line)
-
-        # LOADI
-        line = re.sub('loadi', 'addi $0', line)
-
-        # JAL
-        if line.startswith('jal'):
-            result.append('addi $0 $ra @here+2')
-            line = 'j' + line[3:]
-        
-        # INC and DEC
-        line = re.sub(
-            r'inc (\$[a-zA-Z0-9_]+)', 
-            lambda x: 'addi {} {} 1'.format(
-                x.groups()[0],
-                x.groups()[0],
-            ), 
-            line
-        )
-        line = re.sub(
-            r'dec (\$[a-zA-Z0-9_]+)', 
-            lambda x: 'addi {} {} -1'.format(
-                x.groups()[0],
-                x.groups()[0],
-            ), 
-            line
-        )
-
-        result.append(line)
-    return result    
-
-def get_register(reg):
-    if reg in registers:
-        reg = registers.index(reg)
-    else:
-        reg = int(reg[1:])
-    return "{0:05b}".format(reg)
-
-def compile(code, i):    
+def compile_line(code, i):
     instruction, *items = code.split(' ')
 
     binary = ''
     opcode = opcodes[instruction]
-    if opcode == 0: # R-Type
+    if opcode == 0:  # R-Type
         binary += get_register(items[0])
         binary += get_register(items[1])
         binary += get_register(items[2])
         binary += "0" * 5
         binary += "{0:06b}".format(funct[instruction])
-    elif opcode in [35, 43, 4] + list(range(16, 24)): # Load / Store / Branch / I-Type
+    elif opcode in [35, 43, 4] + list(range(16, 24)):  # Load / Store / Branch / I-Type
         binary += get_register(items[0])
         binary += get_register(items[1])
         if opcode == 4:
-            binary += int2word(get_address(items[2], i) - (i+1))
+            binary += int2word(get_address(items[2], i) - (i + 1))
         else:
-            binary += int2word(get_address(items[2], i)) # Get address will return integer in argument isn't an address
-    elif opcode == 2: # Jump
+            binary += int2word(get_address(items[2], i))  # Get address will return integer if argument isn't an address
+    elif opcode == 2:  # Jump
         binary += "{0:026b}".format(get_address(items[0], i))
-    elif opcode == 8: # Jump register
+    elif opcode == 8:  # Jump register
         binary += get_register(items[0])
         binary += "0" * 21
     else:
         binary = "0" * 26
     
     return "{0:06b}".format(opcode) + binary
-
-def twos_complement(val, nbits):
-    if val < 0:
-        val = (1 << nbits) + val
-    else:
-        if (val & (1 << (nbits - 1))) != 0:
-            val = val - (1 << nbits)
-    return val
-
-def int2word(val):
-    if val < 0:
-        val = (1 << 16) + val
-    else:
-        if (val & (1 << (16 - 1))) != 0:
-            val = val - (1 << 16)
-    return "{0:016b}".format(val)
-
-def word2int(val_str):
-    import sys
-    val = int(val_str, 2)
-    b = val.to_bytes(4, byteorder=sys.byteorder, signed=False)                                                          
-    return str(int.from_bytes(b, byteorder=sys.byteorder, signed=False))
-
-
-if __name__ == '__main__':
-    src_path = './src/'
-    bin_path = './binary/'
-    dec_path = './decimal/'
-
-    shutil.rmtree(bin_path, ignore_errors=True)
-    shutil.rmtree(dec_path, ignore_errors=True)
-    os.makedirs(bin_path)
-    os.makedirs(dec_path)
-
-    compile_times = []
-    file_names = []
-
-    for filename in os.listdir(src_path):
-        start_time = time.time()  # Start timing
-
-        file, ext = filename.split('.')
-        binary = decimal = ''
-        with open(src_path + filename) as f:
-            lines = preprocess(f.readlines())
-            lines = [l for l in lines if l != '']
-
-            i = 0
-            for line in lines:
-                if is_instruction(line):
-                    i += 1
-                elif is_address(line):
-                    save_address(line, i)
-
-            lines = [l for l in lines if is_instruction(l)]
-
-            for i, line in enumerate(lines):
-                bin = compile(line, i)
-                if not bin:
-                    continue
-
-                binary += bin + '\n'
-                decimal += word2int(bin) + '\n'
-
-        with open(bin_path + file + '.txt', 'w+') as f:
-            f.write(binary)
-
-        with open(dec_path + file + '.txt', 'w+') as f:
-            f.write(decimal)
-
-        end_time = time.time()  # End timing
-        compile_times.append(end_time - start_time)
-        file_names.append(filename)
-
-        print(f'{filename} compiled in {end_time - start_time} seconds')
-
-    # Plotting the compilation times
-    plt.figure(figsize=(10, 5))
-    plt.bar(file_names, compile_times, color='blue')
-    plt.xlabel('File Names')
-    plt.ylabel('Compilation Time (seconds)')
-    plt.title('Compilation Time per File')
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    plt.show()
-
