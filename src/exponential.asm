@@ -1,28 +1,27 @@
-; Compute e^x where x is the first number in memory, using Taylor series
-; The second number in memory is used as the number of iterations to perform
+; Compute e^x using Taylor series (x and n from memory)
 
-; Load data
-LW $0 $s0 0   ; x
-LW $0 $s1 1   ; n
-MOVE $0 $s2   ; result
-MOVE $0 $s3   ; i
+; Load x and n
+LW $0 $s0 0   ; x into $s0
+LW $0 $s1 1   ; n into $s1
+MOVE $0 $s2   ; result = 0
+MOVE $0 $s3   ; i = 0
 
 INC $s1
 @LoopBegin
 BEQ $s3 $s1 @LoopEnd
 
-; Call power
+; Compute power x^i
 MOVE $s0 $a0
 MOVE $s3 $a1
 JAL @power
 MOVE $v0 $s4
 
-; Call factorial
+; Compute factorial i!
 MOVE $s3 $a0
 JAL @factorial
 MOVE $v0 $s5
 
-; Update value
+; Update result
 DIV $s4 $s5 $s6
 ADD $s2 $s6 $s2
 
@@ -35,7 +34,6 @@ J @LoopBegin
 SW $0 $s2 2
 
 J @End
-
 
 ; Power function
 @power
@@ -52,7 +50,6 @@ J @End
 
     JR $ra
 
-
 ; Factorial function
 @factorial
     LOADI $v0 1
@@ -67,6 +64,5 @@ J @End
     @LoopEnd2
 
     JR $ra
-
 
 @End

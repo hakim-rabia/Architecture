@@ -5,7 +5,6 @@ MOVE $0 $3
 LW $0 $1 0
 LW $0 $2 1
 
-
 ; Test all R-Type operations
 ADD $1 $2 $3
 SW $0 $3 2
@@ -30,7 +29,6 @@ SW $0 $3 8
 
 SLT $1 $2 $3
 SW $0 $3 9
-
 
 ; Test all I-Type operations
 ADDI $1 $3 -3
@@ -57,7 +55,6 @@ SW $0 $3 16
 SLTI $1 $3 -3
 SW $0 $3 17
 
-
 ; Test jumps
 LOADI $1 1
 LOADI $2 -1
@@ -67,7 +64,6 @@ SW $0 $2 18 ; Error
 
 @JumpSuccess
 SW $0 $1 19 ; Success
-
 
 ; Test branches
 LOADI $3 -19
@@ -90,7 +86,6 @@ JR $ra
 SW $0 $2 23 ; Error
 SW $0 $1 24 ; Success
 
-
 ; Reset registers
 MOVE $0 $1
 MOVE $0 $2
@@ -98,4 +93,3 @@ MOVE $0 $3
 MOVE $0 $4
 MOVE $0 $5
 MOVE $0 $ra
-

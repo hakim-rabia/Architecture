@@ -1,5 +1,4 @@
-; Calculate the factorial of the first number in memory
-; The result is then stored in memory right after
+; Calculate the factorial of the first number in memory and store result
 
 ; Load number
 LW $0 $a0 0
@@ -11,7 +10,6 @@ JAL @factorial
 SW $0 $v0 1
 
 J @End
-
 
 ; Factorial function
 @factorial
@@ -27,6 +25,5 @@ J @End
     @LoopEnd
 
     JR $ra
-
 
 @End

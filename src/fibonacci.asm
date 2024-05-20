@@ -1,13 +1,13 @@
-; Compute the first N terms of the fibonacci secuence
-; The first memory address should store the number of desired terms (N)
-; The second and third memory addresses should store the initialization of the secuence (usually 1 and 1)
+; Compute the first n terms of the fibonacci sequence
+; The first memory address should store the number of terms
+; The initialization of the sequence is stored in the second and third memory address
 
 ; Load data
 LW $0 $t9 0
 LW $0 $t0 1
 LW $0 $t1 2
 LOADI $t8 3
-
+; second and third memory addresses 
 @LoopBegin
 BEQ $t9 $0 @LoopEnd
 

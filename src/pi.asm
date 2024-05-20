@@ -1,5 +1,5 @@
 ; Calculate pi using Leibniz series
-; First address in memory should have the desired number of iterations
+; First address in memory is the number of iterations
 ; Result will be stored at the second address in memory
 
 ; Initialization

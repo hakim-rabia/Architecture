@@ -1,4 +1,6 @@
 import os, shutil, re
+import time
+import matplotlib.pyplot as plt
 
 opcodes = {
     "add":  0,
@@ -164,17 +166,23 @@ def word2int(val_str):
     b = val.to_bytes(4, byteorder=sys.byteorder, signed=False)                                                          
     return str(int.from_bytes(b, byteorder=sys.byteorder, signed=False))
 
+
 if __name__ == '__main__':
     src_path = './src/'
-    bin_path = './bin/'
-    dec_path = './dec/'
+    bin_path = './binary/'
+    dec_path = './decimal/'
 
-    shutil.rmtree(bin_path)
-    shutil.rmtree(dec_path)
+    shutil.rmtree(bin_path, ignore_errors=True)
+    shutil.rmtree(dec_path, ignore_errors=True)
     os.makedirs(bin_path)
     os.makedirs(dec_path)
 
+    compile_times = []
+    file_names = []
+
     for filename in os.listdir(src_path):
+        start_time = time.time()  # Start timing
+
         file, ext = filename.split('.')
         binary = decimal = ''
         with open(src_path + filename) as f:
@@ -191,20 +199,32 @@ if __name__ == '__main__':
             lines = [l for l in lines if is_instruction(l)]
 
             for i, line in enumerate(lines):
-                print(line)
                 bin = compile(line, i)
                 if not bin:
                     continue
 
                 binary += bin + '\n'
                 decimal += word2int(bin) + '\n'
-            print(f'{filename} compiled successfully with {len(lines)} instructions!')
-            for i, line in enumerate(lines):
-                print(str(i).rjust(3) + ' - ' + line)
 
         with open(bin_path + file + '.txt', 'w+') as f:
             f.write(binary)
 
         with open(dec_path + file + '.txt', 'w+') as f:
             f.write(decimal)
+
+        end_time = time.time()  # End timing
+        compile_times.append(end_time - start_time)
+        file_names.append(filename)
+
+        print(f'{filename} compiled in {end_time - start_time} seconds')
+
+    # Plotting the compilation times
+    plt.figure(figsize=(10, 5))
+    plt.bar(file_names, compile_times, color='blue')
+    plt.xlabel('File Names')
+    plt.ylabel('Compilation Time (seconds)')
+    plt.title('Compilation Time per File')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
 
